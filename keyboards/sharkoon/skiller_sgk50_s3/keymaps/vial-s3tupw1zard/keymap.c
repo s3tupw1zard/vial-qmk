@@ -3,8 +3,8 @@
 
 #include QMK_KEYBOARD_H
 
-enum my_profiles {
-    PROFILE_NONE = 0,
+enum lighting_profiles {
+    PROFILE_WINDOWS = 0,
     PROFILE_MINECRAFT,
     PROFILE_NMS,
     PROFILE_ASKA,
@@ -12,7 +12,18 @@ enum my_profiles {
     PROFILE_PALWORLD,
 };
 
-static enum my_profiles current_profile = PROFILE_NONE;
+enum custom_keycodes {
+    KC_PROFILE_WINDOWS = SAFE_RANGE,
+    KC_PROFILE_MINECRAFT,
+    KC_PROFILE_NMS,
+    KC_PROFILE_ASKA,
+    KC_PROFILE_ELDEN_RING,
+    KC_PROFILE_PALWORLD,
+    KC_SAVE_USER_SETTINGS,
+    KC_LOAD_USER_SETTINGS
+};
+
+static enum lighting_profiles current_profile = PROFILE_WINDOWS;
 
 // Global variables for storing the last pressed keys
 static uint8_t last_pressed_f13_f18 = 255;  // Initialize invalid key
@@ -43,10 +54,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [2] = LAYOUT_all(
         _______,  _______, _______, _______, _______,  _______, _______, _______,  _______,  _______, _______, _______, _______, _______, _______, _______,
-        _______, _______,  _______,  _______,  _______,   _______,  _______,  _______,  _______,  _______, QK_MIDI_NOTE_B_5, _______, _______, _______,          _______,
-        _______, _______, _______, QK_MIDI_NOTE_E_0, _______,  _______,  _______, _______,  _______,  _______,  QK_MIDI_NOTE_D_0, _______, _______, _______,          _______,
-        _______, QK_MIDI_NOTE_D_SHARP_0, _______,  _______,  _______,  _______, _______, _______,  _______,  _______, _______, _______,          _______,          _______,
-        _______, _______, _______, _______, _______,   _______, _______, QK_MIDI_NOTE_C_SHARP_0,  QK_MIDI_NOTE_C_0,   _______, _______, _______,          _______, _______, _______,
+        _______, _______,  _______,  _______,  _______,   _______,  _______,  _______,  _______,  _______, KC_PROFILE_WINDOWS, _______, _______, _______,          _______,
+        _______, _______, _______, KC_PROFILE_ELDEN_RING, _______,  _______,  _______, _______,  _______,  _______,  KC_PROFILE_PALWORLD, _______, _______, _______,          _______,
+        _______, KC_PROFILE_ASKA, _______,  _______,  _______,  _______, _______, _______,  _______,  _______, _______, _______,          _______,          _______,
+        _______, _______, _______, _______, _______,   _______, _______, KC_PROFILE_NMS,  KC_PROFILE_MINECRAFT,   _______, _______, _______,          _______, _______, _______,
         _______, _______, _______,                             _______,                               _______, _______, _______, _______, _______, _______
     ),
 
@@ -194,7 +205,7 @@ bool rgb_matrix_indicators_user(void) {
                 rgb_matrix_set_color(52, 0, 0, 255); // 4
                 break;
 
-            case PROFILE_NONE:
+            case PROFILE_WINDOWS:
                 rgb_matrix_set_color(18, 0, 255, 0); // X
                 rgb_matrix_set_color(17, 0, 255, 0); // C
                 rgb_matrix_set_color(16, 0, 255, 0); // V
@@ -313,33 +324,33 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             case KC_F23: last_pressed_f19_f24 = 44; break;
             case KC_F24: last_pressed_f19_f24 = 40; break;
 
-            case QK_MIDI_NOTE_C_0:
+            case KC_PROFILE_MINECRAFT:
                 current_profile = PROFILE_MINECRAFT;
                 last_pressed_layer2 = 13;
                 break;
 
-            case QK_MIDI_NOTE_C_SHARP_0:
+            case KC_PROFILE_NMS:
                 current_profile = PROFILE_NMS;
                 last_pressed_layer2 = 14;
                 break;
 
-            case QK_MIDI_NOTE_D_SHARP_0:
+            case KC_PROFILE_ASKA:
                 current_profile = PROFILE_ASKA;
                 last_pressed_layer2 = 20;
                 break;
 
-            case QK_MIDI_NOTE_E_0:
+            case KC_PROFILE_ELDEN_RING:
                 current_profile = PROFILE_ELDEN_RING;
                 last_pressed_layer2 = 46;
                 break;
 
-            case QK_MIDI_NOTE_D_0:
+            case KC_PROFILE_PALWORLD:
                 current_profile = PROFILE_PALWORLD;
                 last_pressed_layer2 = 39;
                 break;
 
-            case QK_MIDI_NOTE_B_5:
-                current_profile = PROFILE_NONE;
+            case KC_PROFILE_WINDOWS:
+                current_profile = PROFILE_WINDOWS;
                 last_pressed_layer2 = 58;
         }
 
