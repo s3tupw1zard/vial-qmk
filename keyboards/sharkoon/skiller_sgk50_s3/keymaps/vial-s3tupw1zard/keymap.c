@@ -500,62 +500,74 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 49;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
             case KC_F14:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 50;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
             case KC_F15:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 51;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
             case KC_F16:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 52;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
             case KC_F17:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 53;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
             case KC_F18:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 54;
                 update_config_if_needed(config_type, last_pressed_f13_f18);
+                read_config();
                 break;
 
             case KC_F19:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 17;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
             case KC_F20:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 13;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
             case KC_F21:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 21;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
             case KC_F22:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 22;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
             case KC_F23:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 44;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
             case KC_F24:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 40;
                 update_config_if_needed(config_type, last_pressed_f19_f24);
+                read_config();
                 break;
 
             case KC_PROFILE_MINECRAFT:
@@ -565,6 +577,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 13;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
                 break;
 
             case KC_PROFILE_NMS:
@@ -574,6 +587,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 14;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
                 break;
 
             case KC_PROFILE_ASKA:
@@ -583,6 +597,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 20;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
                 break;
 
             case KC_PROFILE_ELDEN_RING:
@@ -592,6 +607,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 46;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
                 break;
 
             case KC_PROFILE_PALWORLD:
@@ -601,6 +617,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 39;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
                 break;
 
             case KC_PROFILE_WINDOWS:
@@ -610,6 +627,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 58;
                 update_config_if_needed(config_type, last_pressed_layer2);
+                read_config();
+                break;
 
             case KC_SAVE_USER_SETTINGS:
                 current_rgb_brightness = rgb_matrix_get_val();
