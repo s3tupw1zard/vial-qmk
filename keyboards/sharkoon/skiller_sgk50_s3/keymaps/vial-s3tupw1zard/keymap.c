@@ -5,6 +5,10 @@
 #include "eeconfig.h"
 #include "rgb_matrix.h"
 
+/**
+ *  Enum for lighting profiles
+ */ 
+
 enum lighting_profiles {
     PROFILE_WINDOWS = 0,
     PROFILE_MINECRAFT,
@@ -14,6 +18,10 @@ enum lighting_profiles {
     PROFILE_PALWORLD,
 };
 
+/**
+ *  Enum for custom keycodes
+ */ 
+
 enum custom_keycodes {
     KC_PROFILE_WINDOWS = SAFE_RANGE,
     KC_PROFILE_MINECRAFT,
@@ -21,47 +29,56 @@ enum custom_keycodes {
     KC_PROFILE_ASKA,
     KC_PROFILE_ELDEN_RING,
     KC_PROFILE_PALWORLD,
-    KC_SAVE_USER_SETTINGS,
-    KC_LOAD_USER_SETTINGS
+
+    // End and Home keys missing a function
 };
+
+/**
+ *  Enum for config types (Need to implement something to combine this enum with profile management)
+ */ 
 
 enum config_types {
-    CURRENT_RGB_BRIGHTNESS,
-    CURRENT_RGB_SPEED,
-    NEW_PROFILE,
     LAST_PRESSED_F13_F18,
-    LAST_PRESSED_F19_F24,
-    LAST_PRESSED_LAYER2
+    LAST_PRESSED_F19_F24
 };
-
-static enum lighting_profiles current_profile = PROFILE_WINDOWS;
 
 static enum config_types config_type;
 
+/**
+ *  Struct for storing values which are saved into EEPROM if needed
+ */ 
 
-typedef struct {
-    uint8_t current_rgb_brightness;
-    uint8_t current_rgb_speed;
-    uint8_t current_profile;
-    uint8_t last_pressed_f13_f18;
-    uint8_t last_pressed_f19_f24;
-    uint8_t last_pressed_layer2;
-} keyboard_config_t;
+typedef union {
+    uint32_t raw;
+    struct {
+        uint8_t current_profile;
+        uint8_t last_pressed_f13_f18;
+        uint8_t last_pressed_f19_f24;
+        uint8_t last_pressed_layer2;
+    };
+} user_config_t;
 
-keyboard_config_t keyboard_config;
+user_config_t user_config;
 
 
-// Global variables for storing the last pressed keys
-static uint8_t last_pressed_f13_f18;
-static uint8_t last_pressed_f19_f24;
-static uint8_t last_pressed_layer2;
-static uint8_t current_rgb_brightness;
-static uint8_t current_rgb_speed;
+/**
+ *  Global variables for storing the last pressed keys and sound status
+ * 
+ *  First two variables save last pressed led ids for custom mappings on layer 1 and 2
+ * 
+ *  Last two variables store the status of if the audio is muted and if music is playing
+ */ 
 
-static int profile_count = 6; // When using this, make sure to subtract 1 from the actual count, since we are counting from 0
+static int last_pressed_f13_f18;
+static int last_pressed_f19_f24;
 
 static bool is_muted = false; // Status of KC_MUTE (Mute Sound Toggle)
 static bool music_active = false; // Status of KC_MPLY (Music Toggle)
+
+
+/**
+ *  My custom keymap with additionally mapped F13 to F24 keys and some custom keycodes
+ */ 
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [0] = LAYOUT_all(
@@ -94,7 +111,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 
-// Windows Profile
+/**
+ *  Windows profile
+ */ 
 
 void profile_windows(void) {
     rgb_matrix_set_color(18, 0, 255, 0); // X
@@ -122,7 +141,9 @@ void profile_windows(void) {
 }
 
 
-// Minecraft Profile
+/**
+ *  Minecraft profile
+ */ 
 
 void profile_minecraft(void) {
     rgb_matrix_set_color(47, 255, 0, 0); // W
@@ -147,7 +168,9 @@ void profile_minecraft(void) {
 }
 
 
-// NMS Profile
+/**
+ *  No Man's Sky profile
+ */ 
 
 void profile_nms(void) {
     rgb_matrix_set_color(47, 0, 0, 255); // W
@@ -177,7 +200,9 @@ void profile_nms(void) {
 }
 
 
-// ASKA Profile
+/**
+ *  ASKA profile
+ */ 
 
 void profile_aska(void) {
     rgb_matrix_set_color(47, 255, 187, 0); // W
@@ -211,7 +236,9 @@ void profile_aska(void) {
     rgb_matrix_set_color(80, 255, 0, 0); // TAB
 }
 
-// Elden Ring Profile
+/**
+ *  Elden Ring profile
+ */ 
 
 void profile_elden_ring(void) {
     rgb_matrix_set_color(47, 0, 255, 0); // W
@@ -236,7 +263,9 @@ void profile_elden_ring(void) {
 }
 
 
-// Palworld Profile
+/**
+ *  Palworld profile
+ */ 
 
 void profile_palworld(void) {
     // Palworld
@@ -264,134 +293,138 @@ void profile_palworld(void) {
     rgb_matrix_set_color(52, 0, 0, 255); // 4
 }
 
-// Update EEPROM with current values
 
-void update_config(void) {
-    eeprom_update_block(&keyboard_config, (void*)EECONFIG_USER, sizeof(keyboard_config_t));
-}
+/**
+ *  Profile Manager for comparing existing and new profile specific values and writing them to eeprom if needed
+ */ 
 
+void profile_manager(int layer2_key, enum lighting_profiles lighting_profile) {
 
-// Initialize EEPROM
+    user_config.raw = eeconfig_read_user();
 
-void init_config(void) {
-    keyboard_config.current_rgb_brightness = 110;
-    keyboard_config.current_rgb_speed = 110;
-    keyboard_config.current_profile = PROFILE_WINDOWS;
-    keyboard_config.last_pressed_f13_f18 = 255;
-    keyboard_config.last_pressed_f19_f24 = 255;
-    keyboard_config.last_pressed_layer2 = 58;
+    switch (lighting_profile) {
 
-    update_config();
-}
-
-
-// Validate EEPROM
-
-bool validate_eeprom(void) {
-    if (keyboard_config.last_pressed_f13_f18 == 0xFF) {
-        return false;
-    }
-    return true;
-}
-
-// Load user settings from EEPROM
-
-void read_config(void) {
-    if (validate_eeprom()) {
-        eeprom_read_block(&keyboard_config, (void*)EECONFIG_USER, sizeof(keyboard_config_t));
-    } else {
-        init_config();
-    }
-}
-
-
-// Check if config values need to be updated and update them if needed
-
-void update_config_if_needed(int config_type, int config_value) {
-
-    /*
-    config types:
-    1: current_rgb_brightness
-    2: current_rgb_speed
-    3: last_profile
-    4: last_pressed_function_01_06
-    5: last_pressed_function_07_12
-    6: last_pressed_layer2
-    */
-
-    switch (config_type) {
-
-        case CURRENT_RGB_BRIGHTNESS:
-            if (config_value != keyboard_config.current_rgb_brightness) {
-                keyboard_config.current_rgb_brightness = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_rgb_brightness)), keyboard_config.current_rgb_brightness);
+        case PROFILE_WINDOWS:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
+            }
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
             }
             break;
 
-        case CURRENT_RGB_SPEED:
-            if (config_value != keyboard_config.current_rgb_speed) {
-                keyboard_config.current_rgb_speed = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_rgb_speed)), keyboard_config.current_rgb_speed);
+        case PROFILE_MINECRAFT:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
+            }
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
             }
             break;
 
-        case NEW_PROFILE:
-            if (config_value != keyboard_config.current_profile) {
-                keyboard_config.current_profile = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_profile)), keyboard_config.current_profile);
+        case PROFILE_NMS:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
             }
-        break;
-
-        case LAST_PRESSED_F13_F18:
-            if (config_value != keyboard_config.last_pressed_f13_f18) {
-                keyboard_config.last_pressed_f13_f18 = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_f13_f18)), keyboard_config.last_pressed_f13_f18);
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
             }
             break;
 
-        case LAST_PRESSED_F19_F24:
-            if (config_value != keyboard_config.last_pressed_f19_f24) {
-                keyboard_config.last_pressed_f19_f24 = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_f19_f24)), keyboard_config.last_pressed_f19_f24);
+        case PROFILE_ASKA:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
+            }
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
             }
             break;
 
-        case LAST_PRESSED_LAYER2:
-            if (config_value != keyboard_config.last_pressed_layer2) {
-                keyboard_config.last_pressed_layer2 = config_value;
-                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_layer2)), keyboard_config.last_pressed_layer2);
+        case PROFILE_ELDEN_RING:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
+            }
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
             }
             break;
-    }
-}
-
-
-// Set default user profile if profile is not yet set
-void init_user_profile(void) {
-    if (keyboard_config.current_profile == 0 || keyboard_config.current_profile < (profile_count - 1)) {
-        current_profile = PROFILE_WINDOWS;
-        config_type = NEW_PROFILE;
-        update_config_if_needed(config_type, current_profile);
-        profile_windows();
+        
+        case PROFILE_PALWORLD:
+            if (layer2_key != user_config.last_pressed_layer2) {
+                user_config.last_pressed_layer2 = layer2_key;
+                eeconfig_update_user(user_config.raw);
+            }
+            if (lighting_profile != user_config.current_profile) {
+                user_config.current_profile = lighting_profile;
+                eeconfig_update_user(user_config.raw);
+            }
+            break;
     }
 }
 
 /**
- * Adjust RGB matrix colors for special functions
+ *  Config Updater for comparing existing and new config values and writing them to eeprom if needed
+ */ 
+
+void update_config(enum config_types config_type, int config_value) {
+
+    user_config.raw = eeconfig_read_user();
+
+    switch (config_type) {
+
+        case 0:
+            // Last Pressed F13 F18
+            if (config_value != user_config.last_pressed_f13_f18) {
+                user_config.last_pressed_f13_f18 = config_value;
+                eeconfig_update_user(user_config.raw);
+            }
+            break;
+
+        case 1:
+            // Last Pressed F19 F24
+            if (config_value != user_config.last_pressed_f19_f24) {
+                user_config.last_pressed_f19_f24 = config_value;
+                eeconfig_update_user(user_config.raw);
+            }
+            break;
+    }
+}
+
+
+/**
+ *  Set colors based on layer state and game / general profile chosen
  */
+
 bool rgb_matrix_indicators_user(void) {
 
-    read_config();
+    user_config.raw = eeconfig_read_user();
 
     if (host_keyboard_led_state().caps_lock) {
         rgb_matrix_set_color(81, 255, 0, 0);  // Set caps lock to red
     }
 
     switch (biton32(layer_state)) {
+
+
+        /**
+        *  Layer 0 (main layer)
+        */
+        
         case 0:
+            user_config.raw = eeconfig_read_user();
             // Set ESC to red
             rgb_matrix_set_color(78, 255, 0, 0);
-        switch (current_profile) {
+        switch (user_config.current_profile) {
             case PROFILE_WINDOWS:
                 profile_windows();
                 break;
@@ -417,12 +450,17 @@ bool rgb_matrix_indicators_user(void) {
                 break;
 
             default:
-                init_user_profile();
                 break;
         }
         break;
 
+
+        /**
+        *  Layer 1 (Status and Control of some things alongside F13 to F24 for macros)
+        */
+
         case 1:
+            user_config.raw = eeconfig_read_user();
             // Set Insert and Pos1 Key Color (Mapped to RM_VALD and RM_VALU for changing rgb lighting brightness)
             rgb_matrix_set_color(65, 0, 255, 0);
             rgb_matrix_set_color(64, 0, 255, 0);
@@ -455,11 +493,13 @@ bool rgb_matrix_indicators_user(void) {
             rgb_matrix_set_color(40, 0, 0, 255);
 
             // Set color for last pressed key
-            if (keyboard_config.last_pressed_f13_f18 != 255) {
-                rgb_matrix_set_color(keyboard_config.last_pressed_f13_f18, 0, 255, 0);
+
+            if (user_config.last_pressed_f13_f18 != 255) {
+                rgb_matrix_set_color(user_config.last_pressed_f13_f18, 0, 255, 0);
             }
-            if (keyboard_config.last_pressed_f19_f24 != 255) {
-                rgb_matrix_set_color(keyboard_config.last_pressed_f19_f24, 0, 255, 0);
+
+            if (user_config.last_pressed_f19_f24 != 255) {
+                rgb_matrix_set_color(user_config.last_pressed_f19_f24, 0, 255, 0);
             }
 
             rgb_matrix_set_color(74, is_muted ? 0 : 255, is_muted ? 255 : 0, is_muted ? 0 : 0);
@@ -468,7 +508,14 @@ bool rgb_matrix_indicators_user(void) {
             rgb_matrix_set_color(0, music_active ? 0 : 255, music_active ? 255 : 0, music_active ? 0 : 0);
             rgb_matrix_set_color(77, music_active ? 0 : 255, music_active ? 255 : 0, music_active ? 0 : 0);
             break;
+
+
+        /**
+        *  Layer 2 (Layer to switch between game and general profiles)
+        */
+
         case 2:
+            user_config.raw = eeconfig_read_user();
             rgb_matrix_set_color(13, 0, 0, 255); // Key: N
             rgb_matrix_set_color(14, 0, 0, 255); // Key: M
             rgb_matrix_set_color(20, 0, 0, 255); // Key: A
@@ -476,9 +523,13 @@ bool rgb_matrix_indicators_user(void) {
             rgb_matrix_set_color(39, 0, 0, 255); // Key: P
             rgb_matrix_set_color(58, 0, 0, 255); // Key: 0
 
+
             // Highlight last pressed key on Layer 2 (Red)
-            if (keyboard_config.last_pressed_layer2 != 255) {
-                rgb_matrix_set_color(keyboard_config.last_pressed_layer2, 255, 0, 0);
+            if (user_config.last_pressed_layer2 != 255) {
+                rgb_matrix_set_color(user_config.last_pressed_layer2, 255, 0, 0);
+            } else {
+                user_config.last_pressed_layer2 = 58;
+                rgb_matrix_set_color(user_config.last_pressed_layer2, 255, 0, 0);
             }
 
             break;
@@ -496,155 +547,106 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
 
         switch (keycode) {
+
+            /**
+            *  F13 to F24 keys
+            */
             case KC_F13:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 49;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
             case KC_F14:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 50;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
             case KC_F15:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 51;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
             case KC_F16:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 52;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
             case KC_F17:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 53;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
             case KC_F18:
                 config_type = LAST_PRESSED_F13_F18;
                 last_pressed_f13_f18 = 54;
-                update_config_if_needed(config_type, last_pressed_f13_f18);
-                read_config();
+                update_config(config_type, last_pressed_f13_f18);
                 break;
 
             case KC_F19:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 17;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
             case KC_F20:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 13;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
             case KC_F21:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 21;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
             case KC_F22:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 22;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
             case KC_F23:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 44;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
             case KC_F24:
                 config_type = LAST_PRESSED_F19_F24;
                 last_pressed_f19_f24 = 40;
-                update_config_if_needed(config_type, last_pressed_f19_f24);
-                read_config();
+                update_config(config_type, last_pressed_f19_f24);
                 break;
 
+            /**
+            *  Game and general profile keys
+            */
             case KC_PROFILE_MINECRAFT:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_MINECRAFT;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 13;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
+                profile_manager(13, PROFILE_MINECRAFT);
                 break;
 
             case KC_PROFILE_NMS:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_NMS;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 14;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
+                profile_manager(14, PROFILE_NMS);
                 break;
 
             case KC_PROFILE_ASKA:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_ASKA;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 20;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
+                profile_manager(20, PROFILE_ASKA);
                 break;
 
             case KC_PROFILE_ELDEN_RING:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_ELDEN_RING;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 46;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
+                profile_manager(46, PROFILE_ELDEN_RING);
                 break;
 
             case KC_PROFILE_PALWORLD:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_PALWORLD;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 39;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
+                profile_manager(39, PROFILE_PALWORLD);
                 break;
 
             case KC_PROFILE_WINDOWS:
-                config_type = NEW_PROFILE;
-                current_profile = PROFILE_WINDOWS;
-                update_config_if_needed(config_type, current_profile);
-                config_type = LAST_PRESSED_LAYER2;
-                last_pressed_layer2 = 58;
-                update_config_if_needed(config_type, last_pressed_layer2);
-                read_config();
-                break;
-
-            case KC_SAVE_USER_SETTINGS:
-                current_rgb_brightness = rgb_matrix_get_val();
-                current_rgb_speed = rgb_matrix_get_speed();
-
-                update_config_if_needed(CURRENT_RGB_BRIGHTNESS, current_rgb_brightness);
-                update_config_if_needed(CURRENT_RGB_SPEED, current_rgb_speed);
-                break;
-
-            case KC_LOAD_USER_SETTINGS:
-                read_config();
+                profile_manager(58, PROFILE_WINDOWS);
                 break;
 
         }
 
-        // Toggle music status when KC_MPLY is pressed
+
+        /**
+        *  Media Play and Mute keys
+        */
+        
         if (keycode == KC_MPLY) {
             music_active = !music_active;
         }
@@ -656,13 +658,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-/*
-void keyboard_post_init_user(void) {
-    // rgb_matrix_mode(RGB_MATRIX_RAINBOW_BEACON); // Set the effect to Rainbow Beacon
-    // rgb_matrix_set_speed(80); // Set speed to 100 (0 = slow, 255 = fast)
-
-    // hsv_t hsv = rgb_matrix_get_hsv();
-    // hsv.v = 130;  // Set brightness
-    // rgb_matrix_sethsv(hsv.h, hsv.s, hsv.v);
-}
+/**
+*  Function for initializing EEPROM
 */
+
+void eeconfig_init_user(void) {
+    user_config.raw = 0;
+    user_config.current_profile = PROFILE_WINDOWS;
+    user_config.last_pressed_f13_f18 = 255;
+    user_config.last_pressed_f19_f24 = 255;
+    user_config.last_pressed_layer2 = 58;
+}
