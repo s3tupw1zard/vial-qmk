@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include QMK_KEYBOARD_H
+#include "eeconfig.h"
+#include "rgb_matrix.h"
 
 enum lighting_profiles {
     PROFILE_WINDOWS = 0,
@@ -23,12 +25,40 @@ enum custom_keycodes {
     KC_LOAD_USER_SETTINGS
 };
 
+enum config_types {
+    CURRENT_RGB_BRIGHTNESS,
+    CURRENT_RGB_SPEED,
+    NEW_PROFILE,
+    LAST_PRESSED_F13_F18,
+    LAST_PRESSED_F19_F24,
+    LAST_PRESSED_LAYER2
+};
+
 static enum lighting_profiles current_profile = PROFILE_WINDOWS;
 
+static enum config_types config_type;
+
+
+typedef struct {
+    uint8_t current_rgb_brightness;
+    uint8_t current_rgb_speed;
+    uint8_t current_profile;
+    uint8_t last_pressed_f13_f18;
+    uint8_t last_pressed_f19_f24;
+    uint8_t last_pressed_layer2;
+} keyboard_config_t;
+
+keyboard_config_t keyboard_config;
+
+
 // Global variables for storing the last pressed keys
-static uint8_t last_pressed_f13_f18 = 255;  // Initialize invalid key
-static uint8_t last_pressed_f19_f24 = 255;  // Initialize invalid index
-static uint8_t last_pressed_layer2 = 58; // Initialize key 0 for default profile
+static uint8_t last_pressed_f13_f18;
+static uint8_t last_pressed_f19_f24;
+static uint8_t last_pressed_layer2;
+static uint8_t current_rgb_brightness;
+static uint8_t current_rgb_speed;
+
+static int profile_count = 6; // When using this, make sure to subtract 1 from the actual count, since we are counting from 0
 
 static bool is_muted = false; // Status of KC_MUTE (Mute Sound Toggle)
 static bool music_active = false; // Status of KC_MPLY (Music Toggle)
@@ -63,10 +93,295 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 };
 
+
+// Windows Profile
+
+void profile_windows(void) {
+    rgb_matrix_set_color(18, 0, 255, 0); // X
+    rgb_matrix_set_color(17, 0, 255, 0); // C
+    rgb_matrix_set_color(16, 0, 255, 0); // V
+    rgb_matrix_set_color(20, 255, 0, 0); // A
+    rgb_matrix_set_color(21, 255, 0, 0); // S
+    rgb_matrix_set_color(85, 0, 0, 255); // WIN
+    rgb_matrix_set_color(84, 0, 0, 255); // Lcontrol
+    rgb_matrix_set_color(86, 0, 0, 255); // Alt
+    rgb_matrix_set_color(82, 0, 0, 255); // LShift
+    rgb_matrix_set_color(80, 0, 255, 0); // TAB
+    rgb_matrix_set_color(35, 255, 0, 0); // Enter up
+    rgb_matrix_set_color(36, 255, 0, 0); // Enter down
+    rgb_matrix_set_color(61, 255, 0, 0); // Backspace
+    rgb_matrix_set_color(4, 0, 0, 255);  // Left
+    rgb_matrix_set_color(5, 0, 0, 255);  // Down
+    rgb_matrix_set_color(6, 0, 0, 255);  // Right
+    rgb_matrix_set_color(8, 0, 0, 255);  // Up
+    if (host_keyboard_led_state().caps_lock) {
+        rgb_matrix_set_color(81, 255, 0, 0);  // Set caps lock to red when locked
+    } else {
+        rgb_matrix_set_color(81, 0, 255, 0); // Set caps lock to blue when not locked
+    }
+}
+
+
+// Minecraft Profile
+
+void profile_minecraft(void) {
+    rgb_matrix_set_color(47, 255, 0, 0); // W
+    rgb_matrix_set_color(20, 255, 0, 0); // A
+    rgb_matrix_set_color(21, 255, 0, 0); // S
+    rgb_matrix_set_color(22, 255, 0, 0); // D
+
+    rgb_matrix_set_color(46, 0, 0, 255); // E
+    rgb_matrix_set_color(23, 0, 0, 255); // F
+    rgb_matrix_set_color(17, 0, 0, 255); // C
+
+    rgb_matrix_set_color(48, 255, 255, 0); // Q
+
+    rgb_matrix_set_color(28, 255, 255, 0); // L
+
+    rgb_matrix_set_color(0, 0, 255, 0); // Space
+    rgb_matrix_set_color(84, 0, 255, 0); // Lcontrol
+    rgb_matrix_set_color(82, 0, 255, 0); // LShift
+
+    rgb_matrix_set_color(35, 255, 0, 0); // Enter up
+    rgb_matrix_set_color(36, 255, 0, 0); // Enter down
+}
+
+
+// NMS Profile
+
+void profile_nms(void) {
+    rgb_matrix_set_color(47, 0, 0, 255); // W
+    rgb_matrix_set_color(20, 0, 0, 255); // A
+    rgb_matrix_set_color(21, 0, 0, 255); // S
+    rgb_matrix_set_color(22, 0, 0, 255); // D
+
+    rgb_matrix_set_color(46, 255, 0, 0); // E
+    rgb_matrix_set_color(17, 255, 0, 0); // C
+    rgb_matrix_set_color(23, 255, 0, 0); // F
+    rgb_matrix_set_color(45, 255, 0, 0); // R
+    rgb_matrix_set_color(18, 255, 0, 0); // X
+
+    rgb_matrix_set_color(0, 0, 0, 255); // Space
+    rgb_matrix_set_color(84, 0, 255, 0); // Lcontrol
+    rgb_matrix_set_color(82, 0, 255, 0); // LShift
+
+    rgb_matrix_set_color(48, 255, 255, 0); // Q
+
+    rgb_matrix_set_color(80, 255, 0, 0); // TAB
+    rgb_matrix_set_color(44, 0, 255, 0); // T
+    rgb_matrix_set_color(24, 0, 255, 0); // G
+    rgb_matrix_set_color(43, 0, 255, 0); // de: Z, us: Y
+    rgb_matrix_set_color(25, 0, 255, 0); // H
+
+    rgb_matrix_set_color(13, 0, 0, 255); // M
+}
+
+
+// ASKA Profile
+
+void profile_aska(void) {
+    rgb_matrix_set_color(47, 255, 187, 0); // W
+    rgb_matrix_set_color(20, 255, 187, 0); // A
+    rgb_matrix_set_color(21, 255, 187, 0); // S
+    rgb_matrix_set_color(22, 255, 187, 0); // D
+
+    rgb_matrix_set_color(48, 0, 0, 255); // Q
+
+    rgb_matrix_set_color(46, 0, 0, 255); // E
+    rgb_matrix_set_color(45, 0, 0, 255); // R
+    rgb_matrix_set_color(23, 0, 0, 255); // F
+    rgb_matrix_set_color(17, 0, 0, 255); // C
+    rgb_matrix_set_color(18, 0, 0, 255); // X
+
+    rgb_matrix_set_color(44, 0, 255, 0); // T
+    rgb_matrix_set_color(24, 0, 255, 0); // G
+    rgb_matrix_set_color(43, 0, 255, 0); // de: Z, us: Y
+    rgb_matrix_set_color(25, 0, 255, 0); // H
+
+    rgb_matrix_set_color(16, 255, 0, 0); // V
+
+    rgb_matrix_set_color(41, 255, 0, 0); // I
+
+    rgb_matrix_set_color(13, 255, 0, 0); // M
+
+    rgb_matrix_set_color(0, 255, 0, 0); // Space
+    rgb_matrix_set_color(84, 0, 0, 255); // Lcontrol
+    rgb_matrix_set_color(82, 0, 0, 255); // LShift
+
+    rgb_matrix_set_color(80, 255, 0, 0); // TAB
+}
+
+// Elden Ring Profile
+
+void profile_elden_ring(void) {
+    rgb_matrix_set_color(47, 0, 255, 0); // W
+    rgb_matrix_set_color(20, 0, 255, 0); // A
+    rgb_matrix_set_color(21, 0, 255, 0); // S
+    rgb_matrix_set_color(22, 0, 255, 0); // D
+
+    rgb_matrix_set_color(46, 0, 0, 255); // E
+    rgb_matrix_set_color(45, 0, 0, 255); // R
+    rgb_matrix_set_color(23, 0, 0, 255); // F
+    rgb_matrix_set_color(24, 0, 0, 255); // G
+
+    rgb_matrix_set_color(48, 255, 0, 0); // Q
+
+    rgb_matrix_set_color(18, 255, 0, 0); // X
+
+    rgb_matrix_set_color(0, 255, 0, 0); // Space
+
+    rgb_matrix_set_color(82, 255, 0, 0); // LShift
+
+    rgb_matrix_set_color(86, 255, 0, 0); // Alt
+}
+
+
+// Palworld Profile
+
+void profile_palworld(void) {
+    // Palworld
+    rgb_matrix_set_color(47, 0, 0, 255); // W
+    rgb_matrix_set_color(20, 0, 0, 255); // A
+    rgb_matrix_set_color(21, 0, 0, 255); // S
+    rgb_matrix_set_color(22, 0, 0, 255); // D
+
+    rgb_matrix_set_color(0, 255, 0, 0); // Space
+
+    rgb_matrix_set_color(46, 255, 0, 0); // E
+    rgb_matrix_set_color(45, 255, 0, 0); // R
+    rgb_matrix_set_color(23, 255, 0, 0); // F
+    rgb_matrix_set_color(17, 255, 0, 0); // C
+
+    rgb_matrix_set_color(48, 255, 187, 0); // Q
+
+
+    rgb_matrix_set_color(84, 255, 0, 0); // Lcontrol
+    rgb_matrix_set_color(82, 255, 0, 0); // LShift
+
+    rgb_matrix_set_color(49, 0, 255, 0); // 1
+    rgb_matrix_set_color(50, 255, 0, 0); // 2
+    rgb_matrix_set_color(51, 0, 255, 0); // 3
+    rgb_matrix_set_color(52, 0, 0, 255); // 4
+}
+
+// Update EEPROM with current values
+
+void update_config(void) {
+    eeprom_update_block(&keyboard_config, (void*)EECONFIG_USER, sizeof(keyboard_config_t));
+}
+
+
+// Initialize EEPROM
+
+void init_config(void) {
+    keyboard_config.current_rgb_brightness = 110;
+    keyboard_config.current_rgb_speed = 110;
+    keyboard_config.current_profile = PROFILE_WINDOWS;
+    keyboard_config.last_pressed_f13_f18 = 255;
+    keyboard_config.last_pressed_f19_f24 = 255;
+    keyboard_config.last_pressed_layer2 = 58;
+
+    update_config();
+}
+
+
+// Validate EEPROM
+
+bool validate_eeprom(void) {
+    if (keyboard_config.last_pressed_f13_f18 == 0xFF) {
+        return false;
+    }
+    return true;
+}
+
+// Load user settings from EEPROM
+
+void read_config(void) {
+    if (validate_eeprom()) {
+        eeprom_read_block(&keyboard_config, (void*)EECONFIG_USER, sizeof(keyboard_config_t));
+    } else {
+        init_config();
+    }
+}
+
+
+// Check if config values need to be updated and update them if needed
+
+void update_config_if_needed(int config_type, int config_value) {
+
+    /*
+    config types:
+    1: current_rgb_brightness
+    2: current_rgb_speed
+    3: last_profile
+    4: last_pressed_function_01_06
+    5: last_pressed_function_07_12
+    6: last_pressed_layer2
+    */
+
+    switch (config_type) {
+
+        case CURRENT_RGB_BRIGHTNESS:
+            if (config_value != keyboard_config.current_rgb_brightness) {
+                keyboard_config.current_rgb_brightness = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_rgb_brightness)), keyboard_config.current_rgb_brightness);
+            }
+            break;
+
+        case CURRENT_RGB_SPEED:
+            if (config_value != keyboard_config.current_rgb_speed) {
+                keyboard_config.current_rgb_speed = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_rgb_speed)), keyboard_config.current_rgb_speed);
+            }
+            break;
+
+        case NEW_PROFILE:
+            if (config_value != keyboard_config.current_profile) {
+                keyboard_config.current_profile = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, current_profile)), keyboard_config.current_profile);
+            }
+        break;
+
+        case LAST_PRESSED_F13_F18:
+            if (config_value != keyboard_config.last_pressed_f13_f18) {
+                keyboard_config.last_pressed_f13_f18 = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_f13_f18)), keyboard_config.last_pressed_f13_f18);
+            }
+            break;
+
+        case LAST_PRESSED_F19_F24:
+            if (config_value != keyboard_config.last_pressed_f19_f24) {
+                keyboard_config.last_pressed_f19_f24 = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_f19_f24)), keyboard_config.last_pressed_f19_f24);
+            }
+            break;
+
+        case LAST_PRESSED_LAYER2:
+            if (config_value != keyboard_config.last_pressed_layer2) {
+                keyboard_config.last_pressed_layer2 = config_value;
+                eeprom_update_byte((uint8_t*) (EECONFIG_USER + offsetof(keyboard_config_t, last_pressed_layer2)), keyboard_config.last_pressed_layer2);
+            }
+            break;
+    }
+}
+
+
+// Set default user profile if profile is not yet set
+void init_user_profile(void) {
+    if (keyboard_config.current_profile == 0 || keyboard_config.current_profile < (profile_count - 1)) {
+        current_profile = PROFILE_WINDOWS;
+        config_type = NEW_PROFILE;
+        update_config_if_needed(config_type, current_profile);
+        profile_windows();
+    }
+}
+
 /**
  * Adjust RGB matrix colors for special functions
  */
 bool rgb_matrix_indicators_user(void) {
+
+    read_config();
 
     if (host_keyboard_led_state().caps_lock) {
         rgb_matrix_set_color(81, 255, 0, 0);  // Set caps lock to red
@@ -77,161 +392,32 @@ bool rgb_matrix_indicators_user(void) {
             // Set ESC to red
             rgb_matrix_set_color(78, 255, 0, 0);
         switch (current_profile) {
+            case PROFILE_WINDOWS:
+                profile_windows();
+                break;
+
             case PROFILE_MINECRAFT:
-                rgb_matrix_set_color(47, 255, 0, 0); // W
-                rgb_matrix_set_color(20, 255, 0, 0); // A
-                rgb_matrix_set_color(21, 255, 0, 0); // S
-                rgb_matrix_set_color(22, 255, 0, 0); // D
-
-                rgb_matrix_set_color(46, 0, 0, 255); // E
-                rgb_matrix_set_color(23, 0, 0, 255); // F
-                rgb_matrix_set_color(17, 0, 0, 255); // C
-
-                rgb_matrix_set_color(48, 255, 255, 0); // Q
-
-                rgb_matrix_set_color(28, 255, 255, 0); // L
-
-                rgb_matrix_set_color(0, 0, 255, 0); // Space
-                rgb_matrix_set_color(84, 0, 255, 0); // Lcontrol
-                rgb_matrix_set_color(82, 0, 255, 0); // LShift
-
-                rgb_matrix_set_color(35, 255, 0, 0); // Enter up
-                rgb_matrix_set_color(36, 255, 0, 0); // Enter down
+                profile_minecraft();
                 break;
 
             case PROFILE_NMS:
-                rgb_matrix_set_color(47, 0, 0, 255); // W
-                rgb_matrix_set_color(20, 0, 0, 255); // A
-                rgb_matrix_set_color(21, 0, 0, 255); // S
-                rgb_matrix_set_color(22, 0, 0, 255); // D
-
-                rgb_matrix_set_color(46, 255, 0, 0); // E
-                rgb_matrix_set_color(17, 255, 0, 0); // C
-                rgb_matrix_set_color(23, 255, 0, 0); // F
-                rgb_matrix_set_color(45, 255, 0, 0); // R
-                rgb_matrix_set_color(18, 255, 0, 0); // X
-
-                rgb_matrix_set_color(0, 0, 0, 255); // Space
-                rgb_matrix_set_color(84, 0, 255, 0); // Lcontrol
-                rgb_matrix_set_color(82, 0, 255, 0); // LShift
-
-                rgb_matrix_set_color(48, 255, 255, 0); // Q
-
-                rgb_matrix_set_color(80, 255, 0, 0); // TAB
-                rgb_matrix_set_color(44, 0, 255, 0); // T
-                rgb_matrix_set_color(24, 0, 255, 0); // G
-                rgb_matrix_set_color(43, 0, 255, 0); // de: Z, us: Y
-                rgb_matrix_set_color(25, 0, 255, 0); // H
-
-                rgb_matrix_set_color(13, 0, 0, 255); // M
+                profile_nms();
                 break;
 
             case PROFILE_ASKA:
-                rgb_matrix_set_color(47, 255, 187, 0); // W
-                rgb_matrix_set_color(20, 255, 187, 0); // A
-                rgb_matrix_set_color(21, 255, 187, 0); // S
-                rgb_matrix_set_color(22, 255, 187, 0); // D
-
-                rgb_matrix_set_color(48, 0, 0, 255); // Q
-
-                rgb_matrix_set_color(46, 0, 0, 255); // E
-                rgb_matrix_set_color(45, 0, 0, 255); // R
-                rgb_matrix_set_color(23, 0, 0, 255); // F
-                rgb_matrix_set_color(17, 0, 0, 255); // C
-                rgb_matrix_set_color(18, 0, 0, 255); // X
-
-                rgb_matrix_set_color(44, 0, 255, 0); // T
-                rgb_matrix_set_color(24, 0, 255, 0); // G
-                rgb_matrix_set_color(43, 0, 255, 0); // de: Z, us: Y
-                rgb_matrix_set_color(25, 0, 255, 0); // H
-
-                rgb_matrix_set_color(16, 255, 0, 0); // V
-
-                rgb_matrix_set_color(41, 255, 0, 0); // I
-
-                rgb_matrix_set_color(13, 255, 0, 0); // M
-
-                rgb_matrix_set_color(0, 255, 0, 0); // Space
-                rgb_matrix_set_color(84, 0, 0, 255); // Lcontrol
-                rgb_matrix_set_color(82, 0, 0, 255); // LShift
-
-                rgb_matrix_set_color(80, 255, 0, 0); // TAB
+                profile_aska();
                 break;
 
             case PROFILE_ELDEN_RING:
-                rgb_matrix_set_color(47, 0, 255, 0); // W
-                rgb_matrix_set_color(20, 0, 255, 0); // A
-                rgb_matrix_set_color(21, 0, 255, 0); // S
-                rgb_matrix_set_color(22, 0, 255, 0); // D
-
-                rgb_matrix_set_color(46, 0, 0, 255); // E
-                rgb_matrix_set_color(45, 0, 0, 255); // R
-                rgb_matrix_set_color(23, 0, 0, 255); // F
-                rgb_matrix_set_color(24, 0, 0, 255); // G
-
-                rgb_matrix_set_color(48, 255, 0, 0); // Q
-
-                rgb_matrix_set_color(18, 255, 0, 0); // X
-
-                rgb_matrix_set_color(0, 255, 0, 0); // Space
-
-                rgb_matrix_set_color(82, 255, 0, 0); // LShift
-
-                rgb_matrix_set_color(86, 255, 0, 0); // Alt
+                profile_elden_ring();
                 break;
 
             case PROFILE_PALWORLD:
-                rgb_matrix_set_color(47, 0, 0, 255); // W
-                rgb_matrix_set_color(20, 0, 0, 255); // A
-                rgb_matrix_set_color(21, 0, 0, 255); // S
-                rgb_matrix_set_color(22, 0, 0, 255); // D
-
-                rgb_matrix_set_color(0, 255, 0, 0); // Space
-
-                rgb_matrix_set_color(46, 255, 0, 0); // E
-                rgb_matrix_set_color(45, 255, 0, 0); // R
-                rgb_matrix_set_color(23, 255, 0, 0); // F
-                rgb_matrix_set_color(17, 255, 0, 0); // C
-
-                rgb_matrix_set_color(48, 255, 187, 0); // Q
-
-
-                rgb_matrix_set_color(84, 255, 0, 0); // Lcontrol
-                rgb_matrix_set_color(82, 255, 0, 0); // LShift
-
-                rgb_matrix_set_color(49, 0, 255, 0); // 1
-                rgb_matrix_set_color(50, 255, 0, 0); // 2
-                rgb_matrix_set_color(51, 0, 255, 0); // 3
-                rgb_matrix_set_color(52, 0, 0, 255); // 4
-                break;
-
-            case PROFILE_WINDOWS:
-                rgb_matrix_set_color(18, 0, 255, 0); // X
-                rgb_matrix_set_color(17, 0, 255, 0); // C
-                rgb_matrix_set_color(16, 0, 255, 0); // V
-                rgb_matrix_set_color(20, 255, 0, 0); // A
-                rgb_matrix_set_color(21, 255, 0, 0); // S
-                rgb_matrix_set_color(85, 0, 0, 255); // WIN
-                rgb_matrix_set_color(84, 0, 0, 255); // Lcontrol
-                rgb_matrix_set_color(86, 0, 0, 255); // Alt
-                rgb_matrix_set_color(82, 0, 0, 255); // LShift
-                rgb_matrix_set_color(80, 0, 255, 0); // TAB
-                rgb_matrix_set_color(35, 255, 0, 0); // Enter up
-                rgb_matrix_set_color(36, 255, 0, 0); // Enter down
-                rgb_matrix_set_color(61, 255, 0, 0); // Backspace
-                rgb_matrix_set_color(4, 0, 0, 255); // Left
-                rgb_matrix_set_color(5, 0, 0, 255); // Down
-                rgb_matrix_set_color(6, 0, 0, 255); // Right
-                rgb_matrix_set_color(8, 0, 0, 255); // Up
-
-                if (host_keyboard_led_state().caps_lock) {
-                    rgb_matrix_set_color(81, 255, 0, 0);  // Set caps lock to red when locked
-                } else {
-                    rgb_matrix_set_color(81, 0, 255, 0); // Set caps lock to blue when not locked
-                }
+                profile_palworld();
                 break;
 
             default:
+                init_user_profile();
                 break;
         }
         break;
@@ -269,11 +455,11 @@ bool rgb_matrix_indicators_user(void) {
             rgb_matrix_set_color(40, 0, 0, 255);
 
             // Set color for last pressed key
-            if (last_pressed_f13_f18 != 255) {
-                rgb_matrix_set_color(last_pressed_f13_f18, 0, 255, 0);
+            if (keyboard_config.last_pressed_f13_f18 != 255) {
+                rgb_matrix_set_color(keyboard_config.last_pressed_f13_f18, 0, 255, 0);
             }
-            if (last_pressed_f19_f24 != 255) {
-                rgb_matrix_set_color(last_pressed_f19_f24, 0, 255, 0);
+            if (keyboard_config.last_pressed_f19_f24 != 255) {
+                rgb_matrix_set_color(keyboard_config.last_pressed_f19_f24, 0, 255, 0);
             }
 
             rgb_matrix_set_color(74, is_muted ? 0 : 255, is_muted ? 255 : 0, is_muted ? 0 : 0);
@@ -291,8 +477,8 @@ bool rgb_matrix_indicators_user(void) {
             rgb_matrix_set_color(58, 0, 0, 255); // Key: 0
 
             // Highlight last pressed key on Layer 2 (Red)
-            if (last_pressed_layer2 != 255) {
-                rgb_matrix_set_color(last_pressed_layer2, 255, 0, 0);
+            if (keyboard_config.last_pressed_layer2 != 255) {
+                rgb_matrix_set_color(keyboard_config.last_pressed_layer2, 255, 0, 0);
             }
 
             break;
@@ -310,48 +496,133 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
 
         switch (keycode) {
-            case KC_F13: last_pressed_f13_f18 = 49; break;
-            case KC_F14: last_pressed_f13_f18 = 50; break;
-            case KC_F15: last_pressed_f13_f18 = 51; break;
-            case KC_F16: last_pressed_f13_f18 = 52; break;
-            case KC_F17: last_pressed_f13_f18 = 53; break;
-            case KC_F18: last_pressed_f13_f18 = 54; break;
+            case KC_F13:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 49;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
+            case KC_F14:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 50;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
+            case KC_F15:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 51;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
+            case KC_F16:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 52;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
+            case KC_F17:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 53;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
+            case KC_F18:
+                config_type = LAST_PRESSED_F13_F18;
+                last_pressed_f13_f18 = 54;
+                update_config_if_needed(config_type, last_pressed_f13_f18);
+                break;
 
-            case KC_F19: last_pressed_f19_f24 = 17; break;
-            case KC_F20: last_pressed_f19_f24 = 13; break;
-            case KC_F21: last_pressed_f19_f24 = 21; break;
-            case KC_F22: last_pressed_f19_f24 = 22; break;
-            case KC_F23: last_pressed_f19_f24 = 44; break;
-            case KC_F24: last_pressed_f19_f24 = 40; break;
+            case KC_F19:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 17;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
+            case KC_F20:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 13;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
+            case KC_F21:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 21;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
+            case KC_F22:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 22;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
+            case KC_F23:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 44;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
+            case KC_F24:
+                config_type = LAST_PRESSED_F19_F24;
+                last_pressed_f19_f24 = 40;
+                update_config_if_needed(config_type, last_pressed_f19_f24);
+                break;
 
             case KC_PROFILE_MINECRAFT:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_MINECRAFT;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 13;
+                update_config_if_needed(config_type, last_pressed_layer2);
                 break;
 
             case KC_PROFILE_NMS:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_NMS;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 14;
+                update_config_if_needed(config_type, last_pressed_layer2);
                 break;
 
             case KC_PROFILE_ASKA:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_ASKA;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 20;
+                update_config_if_needed(config_type, last_pressed_layer2);
                 break;
 
             case KC_PROFILE_ELDEN_RING:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_ELDEN_RING;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 46;
+                update_config_if_needed(config_type, last_pressed_layer2);
                 break;
 
             case KC_PROFILE_PALWORLD:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_PALWORLD;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 39;
+                update_config_if_needed(config_type, last_pressed_layer2);
                 break;
 
             case KC_PROFILE_WINDOWS:
+                config_type = NEW_PROFILE;
                 current_profile = PROFILE_WINDOWS;
+                update_config_if_needed(config_type, current_profile);
+                config_type = LAST_PRESSED_LAYER2;
                 last_pressed_layer2 = 58;
+                update_config_if_needed(config_type, last_pressed_layer2);
+
+            case KC_SAVE_USER_SETTINGS:
+                current_rgb_brightness = rgb_matrix_get_val();
+                current_rgb_speed = rgb_matrix_get_speed();
+
+                update_config_if_needed(CURRENT_RGB_BRIGHTNESS, current_rgb_brightness);
+                update_config_if_needed(CURRENT_RGB_SPEED, current_rgb_speed);
+                break;
+
+            case KC_LOAD_USER_SETTINGS:
+                read_config();
+                break;
+
         }
 
         // Toggle music status when KC_MPLY is pressed
